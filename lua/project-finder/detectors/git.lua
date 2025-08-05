@@ -3,17 +3,14 @@ local M = {}
 local function execute_rg_command(args)
 	local result = vim.system(args, { text = true }):wait()
 
-	if result.code ~= 0 then
+	if result.code ~= 0 and (not result.stdout or result.stdout == "") then
 		return nil, result.stderr or "Command failed"
 	end
 
-	return result.stdout:gsub("\n$", "")
+	return result.stdout and result.stdout:gsub("\n$", "") or ""
 end
 
-function M.find_projects(base_dir, exclude_dirs, max_results)
-	local projects = {}
-
-	local max_limit = max_results or 50
+local function search_git_configs(search_path)
 	local args = {
 		"rg",
 		"--files",
@@ -21,40 +18,41 @@ function M.find_projects(base_dir, exclude_dirs, max_results)
 		"**/.git/config",
 		"--hidden",
 		"--no-ignore",
-		base_dir,
+		search_path,
 	}
+	return execute_rg_command(args)
+end
 
-	local result = execute_rg_command(args)
-	if not result then
-		return {}
+function M.find_projects(base_dir, include_dirs, max_results)
+	local projects = {}
+	local max_limit = max_results or 50
+	local count = 0
+
+	local search_paths = {}
+	if not include_dirs or #include_dirs == 0 then
+		table.insert(search_paths, base_dir)
+	else
+		for _, include_dir in ipairs(include_dirs) do
+			table.insert(search_paths, base_dir .. "/" .. include_dir)
+		end
 	end
 
-	local count = 0
-	for config_path in result:gmatch("[^\n]+") do
+	for _, search_path in ipairs(search_paths) do
 		if count >= max_limit then
 			break
 		end
 
-		local project_dir = config_path:gsub("/.git/config$", "")
-		if project_dir ~= config_path then
-			local should_exclude = false
-			if exclude_dirs then
-				for _, exclude_dir in ipairs(exclude_dirs) do
-					local normalized_project = project_dir:gsub("/$", "")
-					local escaped_exclude = exclude_dir:gsub("([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
-					local pattern = "/" .. escaped_exclude .. "/"
-					local end_pattern = "/" .. escaped_exclude .. "$"
-
-					if normalized_project:find(pattern) or normalized_project:find(end_pattern) then
-						should_exclude = true
-						break
-					end
+		local result = search_git_configs(search_path)
+		if result then
+			for config_path in result:gmatch("[^\n]+") do
+				if count >= max_limit then
+					break
 				end
-			end
-
-			if not should_exclude then
-				table.insert(projects, project_dir)
-				count = count + 1
+				local project_dir = config_path:gsub("/.git/config$", "")
+				if project_dir ~= config_path then
+					table.insert(projects, project_dir)
+					count = count + 1
+				end
 			end
 		end
 	end

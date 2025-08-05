@@ -5,15 +5,17 @@ local git_detector = require("project-finder.detectors.git")
 local PLUGIN_NAME = "project-finder"
 
 local default_config = {
-	exclude_dirs = {
-		".local",
-		".cache",
-		".npm",
-		".cargo",
-		"node_modules",
-		".git",
-		".vscode",
-		".docker",
+	include_dirs = {
+		"Developer",
+		"Projects",
+		"Code",
+		"src",
+		"workspace",
+		"repos",
+		"git",
+		".config",
+		"Documents/GitHub",
+		"Documents/Projects",
 	},
 	max_results = 50,
 	search_root = vim.fn.expand("~"),
@@ -50,9 +52,9 @@ local function validate_config(user_config)
 		end
 	end
 
-	if user_config.exclude_dirs and type(user_config.exclude_dirs) ~= "table" then
-		vim.notify(PLUGIN_NAME .. ": exclude_dirs must be a table", vim.log.levels.WARN)
-		user_config.exclude_dirs = nil
+	if user_config.include_dirs and type(user_config.include_dirs) ~= "table" then
+		vim.notify(PLUGIN_NAME .. ": include_dirs must be a table", vim.log.levels.WARN)
+		user_config.include_dirs = nil
 	end
 end
 
@@ -70,7 +72,7 @@ local function run_detectors()
 	local all_projects = {}
 
 	if config.detectors and config.detectors.git and config.detectors.git.enabled then
-		local git_projects = git_detector.find_projects(config.search_root, config.exclude_dirs, config.max_results)
+		local git_projects = git_detector.find_projects(config.search_root, config.include_dirs, config.max_results)
 		for _, project in ipairs(git_projects) do
 			table.insert(all_projects, project)
 		end
