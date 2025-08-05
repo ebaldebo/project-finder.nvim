@@ -6,8 +6,6 @@ local error = health.error or health.report_error
 local M = {}
 
 function M.check()
-	start("project-finder.nvim")
-
 	if vim.fn.executable("rg") == 1 then
 		ok("ripgrep found")
 	else
