@@ -33,7 +33,10 @@ function M.find_projects(base_dir, include_dirs, max_results)
 		table.insert(search_paths, base_dir)
 	else
 		for _, include_dir in ipairs(include_dirs) do
-			table.insert(search_paths, base_dir .. "/" .. include_dir)
+			local search_path = base_dir .. "/" .. include_dir
+			if vim.fn.isdirectory(search_path) == 1 then
+				table.insert(search_paths, search_path)
+			end
 		end
 	end
 
