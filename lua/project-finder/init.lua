@@ -145,6 +145,13 @@ function M.change_to_project(project_path)
 		return
 	end
 
+	vim.api.nvim_exec_autocmds("DirChanged", {
+		pattern = "global",
+		data = { cwd = full_path },
+	})
+
+	pcall(vim.cmd, "edit " .. vim.fn.fnameescape(full_path))
+
 	vim.notify("Changed to project: " .. project_path)
 end
 
